@@ -1,0 +1,55 @@
+what is DataSkewness?
+------------------------
+A) datskew is a condition in which tables data is unevenly distributed among the partions in the cluster. data skew can severly downgrade performance of queries mainly joins.
+
+Example: a company making 1 million transactions in usa per day, the same company in canada at its new branch is making 1lakk transactions per day, all these transactions are stored in facttable whenwe partition them by country_id there will be un-even data usa table is bigger
+
+suppose if we are doing one wide transformation(groupByKey, reduceByKey, join) in our application there will be 2 stages, if 10 wide transformations there will be 11 stages. Each executor will pick one partition and this partitions are not sharable across the core. each core will pick one partition it is called  task.
+
+suppose there is large table in task3 which will take longer time to execute, also Task1 and Task2 cant help task3 in making execution fasteras they are independent and also it cant go to next stage because next stage is dependent of the earlier stage result till this stage executes it will not go to next stage.
+
+reason for skewness:
+--------------------
+a)spark uses hash partition to identify which dates goes to which partition, evenbecause of it skew can happen. if 70* of records has same hash value they go to same partition. spark default way of partition is hashvalue not anything like country etc. us,india,uk records can have same hash value
+
+b) while uploading a file also based on size of the disk one partition can have more than data than others can also cause skewness
+
+c) hetegenous clustor: eachand every node has different type of ram and harddisk can also cause skewness.
+
+
+how can we identify a skew:
+-----------------------------
+if one task is taking longer time to execute than others even after restart we can idetify it.
+
+
+
+How to handle dataskew: 
+------------------------
+(1) salting Technique: incase we are going to have data skew in a partition with the help of sudo_id we make large table data in to smaller chunks. creating a sudo_id is called salting
+
+
+using random numbers we give partitions as "3" like that then it will repartition the table.
+
+
+2) skew hint: configure skewhint with relation name, column names and skew calues you can also specify skew values in the hint. doing this reduces the overhead of skew join operation otherwise datalakes dtects them automatically.
+
+a)single column skew value example:' selct /*+skew('orders','o_custID,0)*/* FROM orders customers Where o_custId=C_custId
+//order is table name, customers is colums
+
+b)single column, multiple skew values: Select /*+skew('orders','o_cust_id',(0,1,2)) */*
+
+c)
+multiple colums, multiple skew values: Select /*+skew('orders',('o_cust_id','o_custId,0)((0,1001),(1,1002)) */*
+from orders, customers
+where 0.custid=c.custid and -_storeregionid=c_regionid
+
+3)Broadcast Variable:
+
+
+
+
+
+
+
+
+
